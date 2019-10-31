@@ -16,7 +16,7 @@ use grandpa::{AuthorityId as GrandpaId, AuthorityWeight as GrandpaWeight};
 use primitives::OpaqueMetadata;
 use rstd::prelude::*;
 use sr_primitives::traits::{
-    BlakeTwo256, Block as BlockT, ConvertInto, NumberFor, StaticLookup, Verify,
+    BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, NumberFor, StaticLookup, Verify,
 };
 use sr_primitives::weights::Weight;
 use sr_primitives::{
@@ -24,7 +24,7 @@ use sr_primitives::{
     transaction_validity::{
         InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
     },
-    AnySignature, ApplyResult,
+    ApplyResult, MultiSignature,
 };
 #[cfg(feature = "std")]
 use version::NativeVersion;
@@ -38,33 +38,24 @@ pub use sr_primitives::{Perbill, Permill};
 pub use support::{construct_runtime, parameter_types, traits::Randomness, StorageValue};
 pub use timestamp::Call as TimestampCall;
 
-/// An index to a block.
 pub type BlockNumber = u32;
 
-/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = AnySignature;
+pub type Signature = MultiSignature;
 
-/// Some way of identifying an account on the chain. We intentionally make it equivalent
-/// to the public key of our transaction signing scheme.
-pub type AccountId = <Signature as Verify>::Signer;
+pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
-/// The type for looking up accounts. We don't expect more than 4 billion of them, but you
-/// never know...
 pub type AccountIndex = u32;
 
-/// Balance of an account.
 pub type Balance = u128;
 
-/// Index of a transaction in the chain.
 pub type Index = u32;
 
-/// A hash of some data used by the chain.
 pub type Hash = primitives::H256;
 
-/// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
-pub mod utxo;
+// pub mod utxo;
+pub mod token;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -231,8 +222,10 @@ impl sudo::Trait for Runtime {
     type Proposal = Call;
 }
 
-impl utxo::Trait for Runtime {
+impl token::Trait for Runtime {
     type Event = Event;
+    type TokenBalance = u128;
+    type TokenId = u32;
 }
 
 construct_runtime!(
@@ -249,7 +242,7 @@ construct_runtime!(
         Balances: balances::{default, Error},
         TransactionPayment: transaction_payment::{Module, Storage},
         Sudo: sudo,
-        Utxo: utxo::{Module, Call, Storage, Config, Event},
+        Token: token::{Module, Call, Storage, Event<T>, Config<T>},
         RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
     }
 );
@@ -327,72 +320,6 @@ impl_runtime_apis! {
 
     impl client_api::TaggedTransactionQueue<Block> for Runtime {
         fn validate_transaction(tx: <Block as BlockT>::Extrinsic) -> TransactionValidity {
-            use support::IsSubType;
-            use sr_primitives::{
-                traits::Hash,
-                transaction_validity::{TransactionLongevity, TransactionPriority},
-            };
-
-            if let Some(&utxo::Call::execute(ref transaction)) = IsSubType::<utxo::Module<Runtime>, Runtime>::is_sub_type(&tx.function) {
-                // List of tags to require
-                let requires;
-
-                // Transaction priority to assign
-                let priority : TransactionPriority;
-
-                const INVALID_UTXO: u8 = 99;
-
-                match <utxo::Module<Runtime>>::check_transaction(&transaction) {
-                    // Transaction verification failed
-                    Err(e) => {
-                        runtime_io::print_utf8(e.as_bytes());
-                        return Err(TransactionValidityError::Invalid(
-                            InvalidTransaction::Custom(INVALID_UTXO)
-                        ));
-                    }
-
-                    // Transaction is valid and verified
-                    Ok(utxo::CheckInfo::Totals {input, output}) => {
-                        // All input UTXOs were found, so we consider input conditions to be met
-                        requires = Vec::new();
-
-                        // Priority is based on a transaction fee that is equal to the leftover value
-                        let max_priority = utxo::Value::from(TransactionPriority::max_value());
-                        priority = max_priority.min(input - output) as TransactionPriority;
-                    }
-
-                    // Transaction is missing inputs
-                    Ok(utxo::CheckInfo::MissingInputs(missing)) => {
-                        // Since some referred UTXOs were not found in the storage yet,
-                        // we tag current transaction as requiring those particular UTXOs
-                        requires = missing
-                            .iter()         // copies itself into a new vec
-                            .map(|hash| hash.as_fixed_bytes().to_vec())
-                            .collect();
-
-                        // Transaction could not be validated at this point,
-                        // so we have no sane way to calculate the priority
-                        priority = 0;
-                    }
-                }
-
-                // Output tags this transaction provides
-                let provides = transaction.outputs
-                    .iter()
-                    .map(|output| BlakeTwo256::hash_of(output).as_fixed_bytes().to_vec())
-                    .collect();
-
-                return Ok(ValidTransaction{
-                    requires,
-                    provides,
-                    priority,
-                    longevity: TransactionLongevity::max_value(),
-                    propagate: true
-                   }
-                );
-            }
-
-            // Fall back to default logic for non UTXO::execute extrinsics
             Executive::validate_transaction(tx)
         }
     }

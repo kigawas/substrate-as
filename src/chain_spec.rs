@@ -1,15 +1,15 @@
 use aura_primitives::sr25519::AuthorityId as AuraId;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use primitives::{sr25519, Pair, Public};
-use sr_primitives::traits::{IdentifyAccount, Verify};
-use substrate_service;
 use runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, IndicesConfig, Signature,
-    SudoConfig, SystemConfig, UtxoConfig, WASM_BINARY,
+    SudoConfig, SystemConfig, TokenConfig, WASM_BINARY,
 };
+use sr_primitives::traits::{IdentifyAccount, Verify};
+use substrate_service;
 
 use primitives::H256;
-use runtime::utxo;
+use runtime::token;
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -152,12 +152,10 @@ fn testnet_genesis(
             vesting: vec![],
         }),
         sudo: Some(SudoConfig { key: root_key }),
-        utxo: Some(UtxoConfig {
-            initial_utxo: vec![utxo::TransactionOutput {
-                value: utxo::Value::max_value(),
-                pubkey: H256::from_slice(&NICOLE),
-                salt: 0,
-            }],
+        token: Some(TokenConfig {
+            tokens: vec![0, 1],
+            initial_balance: 1000,
+            accounts: endowed_accounts.iter().cloned().collect(),
         }),
         grandpa: Some(GrandpaConfig {
             authorities: initial_authorities

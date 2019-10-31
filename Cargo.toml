@@ -2,11 +2,11 @@
 authors = ['Parity Technologies <admin@parity.io>']
 build = 'build.rs'
 edition = '2018'
-name = 'utxo'
+name = 'token'
 version = '2.0.0'
 
 [[bin]]
-name = 'utxo'
+name = 'token'
 path = 'src/main.rs'
 
 [dependencies]
