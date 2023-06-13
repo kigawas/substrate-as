@@ -1286,7 +1286,7 @@ dependencies = [
  "net2",
  "rustc_version",
  "time",
- "tokio",
+ "tokio 0.1.22",
  "tokio-buf",
  "tokio-executor",
  "tokio-io",
@@ -1512,7 +1512,7 @@ dependencies = [
  "lazy_static",
  "log",
  "num_cpus",
- "tokio",
+ "tokio 0.1.22",
  "tokio-codec",
  "unicase",
 ]
@@ -2698,6 +2698,12 @@ name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
+
+[[package]]
+name = "pin-project-lite"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0a7ae3ac2f1173085d398531c705756c94a4c56843785df85a60c1a0afac116"
 
 [[package]]
 name = "pin-utils"
@@ -4037,7 +4043,7 @@ dependencies = [
  "substrate-state-machine",
  "substrate-telemetry",
  "time",
- "tokio",
+ "tokio 0.1.22",
 ]
 
 [[package]]
@@ -4906,7 +4912,7 @@ dependencies = [
  "substrate-primitives",
  "substrate-service",
  "substrate-transaction-pool",
- "tokio",
+ "tokio 1.18.5",
  "trie-root",
  "vergen",
 ]
@@ -4933,6 +4939,15 @@ dependencies = [
  "tokio-timer",
  "tokio-udp",
  "tokio-uds",
+]
+
+[[package]]
+name = "tokio"
+version = "1.18.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e050c618355082ae5a89ec63bbf897225d5ffe84c7c4e036874e4d185a5044e"
+dependencies = [
+ "pin-project-lite",
 ]
 
 [[package]]
@@ -4976,7 +4991,7 @@ dependencies = [
  "futures",
  "futures-cpupool",
  "lazy_static",
- "tokio",
+ "tokio 0.1.22",
 ]
 
 [[package]]
